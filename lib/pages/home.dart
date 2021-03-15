@@ -2,1189 +2,1375 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-import 'dart:math' as math;
-
+import 'dart:collection';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show describeEnum;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/semantics.dart';
+import 'package:gallery/codeviewer/code_displayer.dart';
+import 'package:gallery/codeviewer/code_segments.dart';
+import 'package:gallery/data/icons.dart';
+
+import 'package:gallery/deferred_widget.dart';
+import 'package:gallery/demos/cupertino/cupertino_demos.dart'
+    deferred as cupertino_demos;
+import 'package:gallery/demos/cupertino/demo_types.dart';
+import 'package:gallery/demos/material/material_demos.dart'
+    deferred as material_demos;
+import 'package:gallery/demos/material/material_demo_types.dart';
+import 'package:gallery/demos/reference/motion_demo_container_transition.dart'
+    deferred as motion_demo_container;
+import 'package:gallery/demos/reference/motion_demo_fade_through_transition.dart';
+import 'package:gallery/demos/reference/motion_demo_fade_scale_transition.dart';
+import 'package:gallery/demos/reference/motion_demo_shared_x_axis_transition.dart';
+import 'package:gallery/demos/reference/motion_demo_shared_y_axis_transition.dart';
+import 'package:gallery/demos/reference/motion_demo_shared_z_axis_transition.dart';
+import 'package:gallery/demos/reference/colors_demo.dart'
+    deferred as colors_demo;
+import 'package:gallery/demos/reference/transformations_demo.dart'
+    deferred as transformations_demo;
+import 'package:gallery/demos/reference/typography_demo.dart'
+    deferred as typography;
 import 'package:flutter_gen/gen_l10n/gallery_localizations.dart';
-import 'package:gallery/constants.dart';
-import 'package:gallery/data/demos.dart';
-import 'package:gallery/data/gallery_options.dart';
-import 'package:gallery/layout/adaptive.dart';
-import 'package:gallery/layout/image_placeholder.dart';
-import 'package:gallery/pages/category_list_item.dart';
-import 'package:gallery/pages/settings.dart';
-import 'package:gallery/pages/splash.dart';
-import 'package:gallery/studies/crane/colors.dart';
-import 'package:gallery/studies/crane/routes.dart' as crane_routes;
-import 'package:gallery/studies/fortnightly/routes.dart' as fortnightly_routes;
-import 'package:gallery/studies/rally/routes.dart' as rally_routes;
-import 'package:gallery/studies/rally/colors.dart';
-import 'package:gallery/studies/reply/routes.dart' as reply_routes;
-import 'package:gallery/studies/shrine/routes.dart' as shrine_routes;
-import 'package:gallery/studies/shrine/colors.dart';
-import 'package:gallery/studies/starter/routes.dart' as starter_app_routes;
+import 'package:flutter_gen/gen_l10n/gallery_localizations_en.dart'
+    show GalleryLocalizationsEn;
 
-const _horizontalPadding = 32.0;
-const _carouselItemMargin = 8.0;
-const _horizontalDesktopPadding = 81.0;
-const _carouselHeightMin = 200.0 + 2 * _carouselItemMargin;
-const _desktopCardsPerPage = 4;
+const _docsBaseUrl = 'https://api.flutter.dev/flutter';
+const _docsAnimationsUrl =
+    'https://pub.dev/documentation/animations/latest/animations';
 
-class ToggleSplashNotification extends Notification {}
-
-class HomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var carouselHeight = _carouselHeight(.7, context);
-    final isDesktop = isDisplayDesktop(context);
-    final localizations = GalleryLocalizations.of(context);
-    final studyDemos = studies(localizations);
-    final carouselCards = <Widget>[
-      _CarouselCard(
-        demo: studyDemos['reply'],
-        asset: const AssetImage(
-          'assets/studies/reply_card.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetColor: const Color(0xFF344955),
-        assetDark: const AssetImage(
-          'assets/studies/reply_card_dark.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetDarkColor: const Color(0xFF1D2327),
-        textColor: Colors.white,
-        studyRoute: reply_routes.homeRoute,
-      ),
-      _CarouselCard(
-        demo: studyDemos['shrine'],
-        asset: const AssetImage(
-          'assets/studies/shrine_card.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetColor: const Color(0xFFFEDBD0),
-        assetDark: const AssetImage(
-          'assets/studies/shrine_card_dark.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetDarkColor: const Color(0xFF543B3C),
-        textColor: shrineBrown900,
-        studyRoute: shrine_routes.loginRoute,
-      ),
-      _CarouselCard(
-        demo: studyDemos['rally'],
-        textColor: RallyColors.accountColors[0],
-        asset: const AssetImage(
-          'assets/studies/rally_card.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetColor: const Color(0xFFD1F2E6),
-        assetDark: const AssetImage(
-          'assets/studies/rally_card_dark.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetDarkColor: const Color(0xFF253538),
-        studyRoute: rally_routes.loginRoute,
-      ),
-      _CarouselCard(
-        demo: studyDemos['crane'],
-        asset: const AssetImage(
-          'assets/studies/crane_card.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetColor: const Color(0xFFFBF6F8),
-        assetDark: const AssetImage(
-          'assets/studies/crane_card_dark.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetDarkColor: const Color(0xFF591946),
-        textColor: cranePurple700,
-        studyRoute: crane_routes.defaultRoute,
-      ),
-      _CarouselCard(
-        demo: studyDemos['fortnightly'],
-        asset: const AssetImage(
-          'assets/studies/fortnightly_card.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetColor: Colors.white,
-        assetDark: const AssetImage(
-          'assets/studies/fortnightly_card_dark.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetDarkColor: const Color(0xFF1F1F1F),
-        studyRoute: fortnightly_routes.defaultRoute,
-      ),
-      _CarouselCard(
-        demo: studyDemos['starterApp'],
-        asset: const AssetImage(
-          'assets/studies/starter_card.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetColor: const Color(0xFFFAF6FE),
-        assetDark: const AssetImage(
-          'assets/studies/starter_card_dark.png',
-          package: 'flutter_gallery_assets',
-        ),
-        assetDarkColor: const Color(0xFF3F3D45),
-        textColor: Colors.black,
-        studyRoute: starter_app_routes.defaultRoute,
-      ),
-    ];
-
-    if (isDesktop) {
-      final desktopCategoryItems = <_DesktopCategoryItem>[
-        _DesktopCategoryItem(
-          category: GalleryDemoCategory.material,
-          asset: const AssetImage(
-            'assets/icons/material/material.png',
-            package: 'flutter_gallery_assets',
-          ),
-          demos: materialDemos(localizations),
-        ),
-        _DesktopCategoryItem(
-          category: GalleryDemoCategory.cupertino,
-          asset: const AssetImage(
-            'assets/icons/cupertino/cupertino.png',
-            package: 'flutter_gallery_assets',
-          ),
-          demos: cupertinoDemos(localizations),
-        ),
-        _DesktopCategoryItem(
-          category: GalleryDemoCategory.other,
-          asset: const AssetImage(
-            'assets/icons/reference/reference.png',
-            package: 'flutter_gallery_assets',
-          ),
-          demos: otherDemos(localizations),
-        ),
-      ];
-
-      return Scaffold(
-        body: ListView(
-          // Makes integration tests possible.
-          key: const ValueKey('HomeListView'),
-          padding: EdgeInsetsDirectional.only(
-            top: isDesktop ? firstHeaderDesktopTopPadding : 21,
-          ),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: _horizontalDesktopPadding,
-              ),
-              child: _GalleryHeader(),
-            ),
-            Container(
-              height: carouselHeight,
-              child: _DesktopCarousel(children: carouselCards),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: _horizontalDesktopPadding,
-              ),
-              child: _CategoriesHeader(),
-            ),
-            Container(
-              height: 585,
-              padding: const EdgeInsets.symmetric(
-                horizontal: _horizontalDesktopPadding,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: spaceBetween(28, desktopCategoryItems),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsetsDirectional.only(
-                start: _horizontalDesktopPadding,
-                bottom: 81,
-                end: _horizontalDesktopPadding,
-                top: 109,
-              ),
-              child: Row(
-                children: [
-                  FadeInImagePlaceholder(
-                    image: Theme.of(context).colorScheme.brightness ==
-                            Brightness.dark
-                        ? const AssetImage(
-                            'assets/logo/flutter_logo.png',
-                            package: 'flutter_gallery_assets',
-                          )
-                        : const AssetImage(
-                            'assets/logo/flutter_logo_color.png',
-                            package: 'flutter_gallery_assets',
-                          ),
-                    placeholder: const SizedBox.shrink(),
-                    excludeFromSemantics: true,
-                  ),
-                  Expanded(
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      alignment: WrapAlignment.end,
-                      children: [
-                        SettingsAbout(),
-                        SettingsFeedback(),
-                        SettingsAttribution(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Scaffold(
-        body: _AnimatedHomePage(
-          restorationId: 'animated_page',
-          isSplashPageAnimationFinished:
-              SplashPageAnimation.of(context).isFinished,
-          carouselCards: carouselCards,
-        ),
-      );
-    }
-  }
-
-  List<Widget> spaceBetween(double paddingBetween, List<Widget> children) {
-    return [
-      for (int index = 0; index < children.length; index++) ...[
-        Flexible(
-          child: children[index],
-        ),
-        if (index < children.length - 1) SizedBox(width: paddingBetween),
-      ],
-    ];
-  }
+enum GalleryDemoCategory {
+  study,
+  material,
+  cupertino,
+  other,
 }
 
-class _GalleryHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Header(
-      color: Theme.of(context).colorScheme.primaryVariant,
-      text: GalleryLocalizations.of(context).homeHeaderGallery,
-    );
-  }
-}
+extension GalleryDemoExtension on GalleryDemoCategory {
+  String get name => describeEnum(this);
 
-class _CategoriesHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Header(
-      color: Theme.of(context).colorScheme.primary,
-      text: GalleryLocalizations.of(context).homeHeaderCategories,
-    );
-  }
-}
-
-class Header extends StatelessWidget {
-  const Header({this.color, this.text});
-
-  final Color color;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        top: isDisplayDesktop(context) ? 63 : 15,
-        bottom: isDisplayDesktop(context) ? 21 : 11,
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.headline4.apply(
-              color: color,
-              fontSizeDelta:
-                  isDisplayDesktop(context) ? desktopDisplay1FontDelta : 0,
-            ),
-      ),
-    );
-  }
-}
-
-class _AnimatedHomePage extends StatefulWidget {
-  const _AnimatedHomePage({
-    Key key,
-    @required this.restorationId,
-    @required this.carouselCards,
-    @required this.isSplashPageAnimationFinished,
-  }) : super(key: key);
-
-  final String restorationId;
-  final List<Widget> carouselCards;
-  final bool isSplashPageAnimationFinished;
-
-  @override
-  _AnimatedHomePageState createState() => _AnimatedHomePageState();
-}
-
-class _AnimatedHomePageState extends State<_AnimatedHomePage>
-    with RestorationMixin, SingleTickerProviderStateMixin {
-  AnimationController _animationController;
-  Timer _launchTimer;
-  final RestorableBool _isMaterialListExpanded = RestorableBool(false);
-  final RestorableBool _isCupertinoListExpanded = RestorableBool(false);
-  final RestorableBool _isOtherListExpanded = RestorableBool(false);
-
-  @override
-  String get restorationId => widget.restorationId;
-
-  @override
-  void restoreState(RestorationBucket oldBucket, bool initialRestore) {
-    registerForRestoration(_isMaterialListExpanded, 'material_list');
-    registerForRestoration(_isCupertinoListExpanded, 'cupertino_list');
-    registerForRestoration(_isOtherListExpanded, 'other_list');
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    if (widget.isSplashPageAnimationFinished) {
-      // To avoid the animation from running when changing the window size from
-      // desktop to mobile, we do not animate our widget if the
-      // splash page animation is finished on initState.
-      _animationController.value = 1.0;
-    } else {
-      // Start our animation halfway through the splash page animation.
-      _launchTimer = Timer(
-        const Duration(
-          milliseconds: splashPageAnimationDurationInMilliseconds ~/ 2,
-        ),
-        () {
-          _animationController.forward();
-        },
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _launchTimer?.cancel();
-    _launchTimer = null;
-    _isMaterialListExpanded.dispose();
-    _isCupertinoListExpanded.dispose();
-    _isOtherListExpanded.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final localizations = GalleryLocalizations.of(context);
-    final isTestMode = GalleryOptions.of(context).isTestMode;
-    return Stack(
-      children: [
-        ListView(
-          // Makes integration tests possible.
-          key: const ValueKey('HomeListView'),
-          restorationId: 'home_list_view',
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              margin:
-                  const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-              child: _GalleryHeader(),
-            ),
-            _Carousel(
-              animationController: _animationController,
-              restorationId: 'home_carousel',
-              children: widget.carouselCards,
-            ),
-            Container(
-              margin:
-                  const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-              child: _CategoriesHeader(),
-            ),
-            _AnimatedCategoryItem(
-              startDelayFraction: 0.00,
-              controller: _animationController,
-              child: CategoryListItem(
-                  key: const PageStorageKey<GalleryDemoCategory>(
-                    GalleryDemoCategory.material,
-                  ),
-                  restorationId: 'home_material_category_list',
-                  category: GalleryDemoCategory.material,
-                  imageString: 'assets/icons/material/material.png',
-                  demos: materialDemos(localizations),
-                  initiallyExpanded:
-                      _isMaterialListExpanded.value || isTestMode,
-                  onTap: (shouldOpenList) {
-                    _isMaterialListExpanded.value = shouldOpenList;
-                  }),
-            ),
-            _AnimatedCategoryItem(
-              startDelayFraction: 0.05,
-              controller: _animationController,
-              child: CategoryListItem(
-                  key: const PageStorageKey<GalleryDemoCategory>(
-                    GalleryDemoCategory.cupertino,
-                  ),
-                  restorationId: 'home_cupertino_category_list',
-                  category: GalleryDemoCategory.cupertino,
-                  imageString: 'assets/icons/cupertino/cupertino.png',
-                  demos: cupertinoDemos(localizations),
-                  initiallyExpanded:
-                      _isCupertinoListExpanded.value || isTestMode,
-                  onTap: (shouldOpenList) {
-                    _isCupertinoListExpanded.value = shouldOpenList;
-                  }),
-            ),
-            _AnimatedCategoryItem(
-              startDelayFraction: 0.10,
-              controller: _animationController,
-              child: CategoryListItem(
-                  key: const PageStorageKey<GalleryDemoCategory>(
-                    GalleryDemoCategory.other,
-                  ),
-                  restorationId: 'home_other_category_list',
-                  category: GalleryDemoCategory.other,
-                  imageString: 'assets/icons/reference/reference.png',
-                  demos: otherDemos(localizations),
-                  initiallyExpanded: _isOtherListExpanded.value || isTestMode,
-                  onTap: (shouldOpenList) {
-                    _isOtherListExpanded.value = shouldOpenList;
-                  }),
-            ),
-          ],
-        ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: GestureDetector(
-            onVerticalDragEnd: (details) {
-              if (details.velocity.pixelsPerSecond.dy > 200) {
-                ToggleSplashNotification()..dispatch(context);
-              }
-            },
-            child: SafeArea(
-              child: Container(
-                height: 40,
-                // If we don't set the color, gestures are not detected.
-                color: Colors.transparent,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DesktopCategoryItem extends StatelessWidget {
-  const _DesktopCategoryItem({
-    this.category,
-    this.asset,
-    this.demos,
-  });
-
-  final GalleryDemoCategory category;
-  final ImageProvider asset;
-  final List<GalleryDemo> demos;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      borderRadius: BorderRadius.circular(10),
-      clipBehavior: Clip.antiAlias,
-      color: colorScheme.surface,
-      child: Semantics(
-        container: true,
-        child: FocusTraversalGroup(
-          policy: WidgetOrderTraversalPolicy(),
-          child: Column(
-            children: [
-              _DesktopCategoryHeader(
-                category: category,
-                asset: asset,
-              ),
-              Divider(
-                height: 2,
-                thickness: 2,
-                color: colorScheme.background,
-              ),
-              Flexible(
-                child: ListView.builder(
-                  // Makes integration tests possible.
-                  key: ValueKey('${category.name}DemoList'),
-                  itemBuilder: (context, index) =>
-                      CategoryDemoItem(demo: demos[index]),
-                  itemCount: demos.length,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DesktopCategoryHeader extends StatelessWidget {
-  const _DesktopCategoryHeader({
-    this.category,
-    this.asset,
-  });
-  final GalleryDemoCategory category;
-  final ImageProvider asset;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      // Makes integration tests possible.
-      key: ValueKey('${category.name}CategoryHeader'),
-      color: colorScheme.onBackground,
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: FadeInImagePlaceholder(
-              image: asset,
-              placeholder: const SizedBox(
-                height: 64,
-                width: 64,
-              ),
-              width: 64,
-              height: 64,
-              excludeFromSemantics: true,
-            ),
-          ),
-          Flexible(
-            child: Padding(
-              padding: const EdgeInsetsDirectional.only(start: 8),
-              child: Semantics(
-                header: true,
-                child: Text(
-                  category.displayTitle(GalleryLocalizations.of(context)),
-                  style: Theme.of(context).textTheme.headline5.apply(
-                        color: colorScheme.onSurface,
-                      ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Animates the category item to stagger in. The [_AnimatedCategoryItem.startDelayFraction]
-/// gives a delay in the unit of a fraction of the whole animation duration,
-/// which is defined in [_AnimatedHomePageState].
-class _AnimatedCategoryItem extends StatelessWidget {
-  _AnimatedCategoryItem({
-    Key key,
-    double startDelayFraction,
-    @required this.controller,
-    @required this.child,
-  })  : topPaddingAnimation = Tween(
-          begin: 60.0,
-          end: 0.0,
-        ).animate(
-          CurvedAnimation(
-            parent: controller,
-            curve: Interval(
-              0.000 + startDelayFraction,
-              0.400 + startDelayFraction,
-              curve: Curves.ease,
-            ),
-          ),
-        ),
-        super(key: key);
-
-  final Widget child;
-  final AnimationController controller;
-  final Animation<double> topPaddingAnimation;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        return Padding(
-          padding: EdgeInsets.only(top: topPaddingAnimation.value),
-          child: child,
-        );
-      },
-      child: child,
-    );
-  }
-}
-
-/// Animates the carousel to come in from the right.
-class _AnimatedCarousel extends StatelessWidget {
-  _AnimatedCarousel({
-    Key key,
-    @required this.child,
-    @required this.controller,
-  })  : startPositionAnimation = Tween(
-          begin: 1.0,
-          end: 0.0,
-        ).animate(
-          CurvedAnimation(
-            parent: controller,
-            curve: const Interval(
-              0.200,
-              0.800,
-              curve: Curves.ease,
-            ),
-          ),
-        ),
-        super(key: key);
-
-  final Widget child;
-  final AnimationController controller;
-  final Animation<double> startPositionAnimation;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      return Stack(
-        children: [
-          SizedBox(height: _carouselHeight(.4, context)),
-          AnimatedBuilder(
-            animation: controller,
-            builder: (context, child) {
-              return PositionedDirectional(
-                start: constraints.maxWidth * startPositionAnimation.value,
-                child: child,
-              );
-            },
-            child: Container(
-              height: _carouselHeight(.4, context),
-              width: constraints.maxWidth,
-              child: child,
-            ),
-          ),
-        ],
-      );
-    });
-  }
-}
-
-/// Animates a carousel card to come in from the right.
-class _AnimatedCarouselCard extends StatelessWidget {
-  _AnimatedCarouselCard({
-    Key key,
-    @required this.child,
-    @required this.controller,
-  })  : startPaddingAnimation = Tween(
-          begin: _horizontalPadding,
-          end: 0.0,
-        ).animate(
-          CurvedAnimation(
-            parent: controller,
-            curve: const Interval(
-              0.900,
-              1.000,
-              curve: Curves.ease,
-            ),
-          ),
-        ),
-        super(key: key);
-
-  final Widget child;
-  final AnimationController controller;
-  final Animation<double> startPaddingAnimation;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        return Padding(
-          padding: EdgeInsetsDirectional.only(
-            start: startPaddingAnimation.value,
-          ),
-          child: child,
-        );
-      },
-      child: child,
-    );
-  }
-}
-
-class _Carousel extends StatefulWidget {
-  const _Carousel({
-    Key key,
-    this.animationController,
-    this.restorationId,
-    this.children,
-  }) : super(key: key);
-
-  final AnimationController animationController;
-  final String restorationId;
-  final List<Widget> children;
-
-  @override
-  _CarouselState createState() => _CarouselState();
-}
-
-class _CarouselState extends State<_Carousel>
-    with RestorationMixin, SingleTickerProviderStateMixin {
-  PageController _controller;
-
-  final RestorableInt _currentPage = RestorableInt(0);
-
-  @override
-  String get restorationId => widget.restorationId;
-
-  @override
-  void restoreState(RestorationBucket oldBucket, bool initialRestore) {
-    registerForRestoration(_currentPage, 'carousel_page');
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_controller == null) {
-      // The viewPortFraction is calculated as the width of the device minus the
-      // padding.
-      final width = MediaQuery.of(context).size.width;
-      final padding = (_horizontalPadding * 2) - (_carouselItemMargin * 2);
-      _controller = PageController(
-        initialPage: _currentPage.value,
-        viewportFraction: (width - padding) / width,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _currentPage.dispose();
-    super.dispose();
-  }
-
-  Widget builder(int index) {
-    final carouselCard = AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        double value;
-        if (_controller.position.haveDimensions) {
-          value = _controller.page - index;
-        } else {
-          // If haveDimensions is false, use _currentPage to calculate value.
-          value = (_currentPage.value - index).toDouble();
-        }
-        // We want the peeking cards to be 160 in height and 0.38 helps
-        // achieve that.
-        value = (1 - (value.abs() * .38)).clamp(0, 1).toDouble();
-        value = Curves.easeOut.transform(value);
-
-        return Center(
-          child: Transform(
-            transform: Matrix4.diagonal3Values(1.0, value, 1.0),
-            alignment: Alignment.center,
-            child: child,
-          ),
-        );
-      },
-      child: widget.children[index],
-    );
-
-    // We only want the second card to be animated.
-    if (index == 1) {
-      return _AnimatedCarouselCard(
-        child: carouselCard,
-        controller: widget.animationController,
-      );
-    } else {
-      return carouselCard;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _AnimatedCarousel(
-      child: PageView.builder(
-        // Makes integration tests possible.
-        key: const ValueKey('studyDemoList'),
-        onPageChanged: (value) {
-          setState(() {
-            _currentPage.value = value;
-          });
-        },
-        controller: _controller,
-        itemCount: widget.children.length,
-        itemBuilder: (context, index) => builder(index),
-        allowImplicitScrolling: true,
-      ),
-      controller: widget.animationController,
-    );
-  }
-}
-
-/// This creates a horizontally scrolling [ListView] of items.
-///
-/// This class uses a [ListView] with a custom [ScrollPhysics] to enable
-/// snapping behavior. A [PageView] was considered but does not allow for
-/// multiple pages visible without centering the first page.
-class _DesktopCarousel extends StatefulWidget {
-  const _DesktopCarousel({Key key, this.children}) : super(key: key);
-
-  final List<Widget> children;
-
-  @override
-  _DesktopCarouselState createState() => _DesktopCarouselState();
-}
-
-class _DesktopCarouselState extends State<_DesktopCarousel> {
-  static const cardPadding = 15.0;
-  ScrollController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = ScrollController();
-    _controller.addListener(() {
-      setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Widget _builder(int index) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 8,
-        horizontal: cardPadding,
-      ),
-      child: widget.children[index],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    var showPreviousButton = false;
-    var showNextButton = true;
-    // Only check this after the _controller has been attached to the ListView.
-    if (_controller.hasClients) {
-      showPreviousButton = _controller.offset > 0;
-      showNextButton =
-          _controller.offset < _controller.position.maxScrollExtent;
-    }
-    final totalWidth = MediaQuery.of(context).size.width -
-        (_horizontalDesktopPadding - cardPadding) * 2;
-    final itemWidth = totalWidth / _desktopCardsPerPage;
-
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _horizontalDesktopPadding - cardPadding,
-          ),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const _SnappingScrollPhysics(),
-            controller: _controller,
-            itemExtent: itemWidth,
-            itemCount: widget.children.length,
-            itemBuilder: (context, index) => _builder(index),
-          ),
-        ),
-        if (showPreviousButton)
-          _DesktopPageButton(
-            onTap: () {
-              _controller.animateTo(
-                _controller.offset - itemWidth,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-              );
-            },
-          ),
-        if (showNextButton)
-          _DesktopPageButton(
-            isEnd: true,
-            onTap: () {
-              _controller.animateTo(
-                _controller.offset + itemWidth,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-              );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-/// Scrolling physics that snaps to the new item in the [_DesktopCarousel].
-class _SnappingScrollPhysics extends ScrollPhysics {
-  const _SnappingScrollPhysics({ScrollPhysics parent}) : super(parent: parent);
-
-  @override
-  _SnappingScrollPhysics applyTo(ScrollPhysics ancestor) {
-    return _SnappingScrollPhysics(parent: buildParent(ancestor));
-  }
-
-  double _getTargetPixels(
-    ScrollMetrics position,
-    Tolerance tolerance,
-    double velocity,
-  ) {
-    final itemWidth = position.viewportDimension / _desktopCardsPerPage;
-    var item = position.pixels / itemWidth;
-    if (velocity < -tolerance.velocity) {
-      item -= 0.5;
-    } else if (velocity > tolerance.velocity) {
-      item += 0.5;
-    }
-    return math.min(
-      item.roundToDouble() * itemWidth,
-      position.maxScrollExtent,
-    );
-  }
-
-  @override
-  Simulation createBallisticSimulation(
-    ScrollMetrics position,
-    double velocity,
-  ) {
-    if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
-        (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
-      return super.createBallisticSimulation(position, velocity);
-    }
-    final tolerance = this.tolerance;
-    final target = _getTargetPixels(position, tolerance, velocity);
-    if (target != position.pixels) {
-      return ScrollSpringSimulation(
-        spring,
-        position.pixels,
-        target,
-        velocity,
-        tolerance: tolerance,
-      );
+  String displayTitle(GalleryLocalizations localizations) {
+    switch (this) {
+      case GalleryDemoCategory.material:
+        return 'MATERIAL';
+      case GalleryDemoCategory.cupertino:
+        return 'CUPERTINO';
+      case GalleryDemoCategory.other:
+        return localizations.homeCategoryReference;
+      case GalleryDemoCategory.study:
     }
     return null;
   }
-
-  @override
-  bool get allowImplicitScrolling => true;
 }
 
-class _DesktopPageButton extends StatelessWidget {
-  const _DesktopPageButton({
-    Key key,
-    this.isEnd = false,
-    this.onTap,
-  }) : super(key: key);
+class GalleryDemo {
+  const GalleryDemo({
+    @required this.title,
+    @required this.category,
+    @required this.subtitle,
+    // This parameter is required for studies.
+    this.studyId,
+    // Parameters below are required for non-study demos.
+    this.slug,
+    this.icon,
+    this.configurations,
+  })  : assert(title != null),
+        assert(category != null),
+        assert(subtitle != null),
+        assert(category == GalleryDemoCategory.study ||
+            (slug != null && icon != null && configurations != null)),
+        assert(slug != null || studyId != null);
 
-  final bool isEnd;
-  final GestureTapCallback onTap;
+  final String title;
+  final GalleryDemoCategory category;
+  final String subtitle;
+  final String studyId;
+  final String slug;
+  final IconData icon;
+  final List<GalleryDemoConfiguration> configurations;
 
-  @override
-  Widget build(BuildContext context) {
-    final buttonSize = 58.0;
-    final padding = _horizontalDesktopPadding - buttonSize / 2;
-    return ExcludeSemantics(
-      child: Align(
-        alignment: isEnd
-            ? AlignmentDirectional.centerEnd
-            : AlignmentDirectional.centerStart,
-        child: Container(
-          width: buttonSize,
-          height: buttonSize,
-          margin: EdgeInsetsDirectional.only(
-            start: isEnd ? 0 : padding,
-            end: isEnd ? padding : 0,
-          ),
-          child: Tooltip(
-            message: isEnd
-                ? MaterialLocalizations.of(context).nextPageTooltip
-                : MaterialLocalizations.of(context).previousPageTooltip,
-            child: Material(
-              color: Colors.black.withOpacity(0.5),
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: onTap,
-                child: Icon(
-                  isEnd ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+  String get describe => '${slug ?? studyId}@${category.name}';
+}
+
+class GalleryDemoConfiguration {
+  const GalleryDemoConfiguration({
+    this.title,
+    this.description,
+    this.documentationUrl,
+    this.buildRoute,
+    this.code,
+  });
+
+  final String title;
+  final String description;
+  final String documentationUrl;
+  final WidgetBuilder buildRoute;
+  final CodeDisplayer code;
+}
+
+List<GalleryDemo> allGalleryDemos(GalleryLocalizations localizations) =>
+    studies(localizations).values.toList() +
+    materialDemos(localizations) +
+    cupertinoDemos(localizations) +
+    otherDemos(localizations);
+
+List<String> allGalleryDemoDescriptions() =>
+    allGalleryDemos(GalleryLocalizationsEn())
+        .map((demo) => demo.describe)
+        .toList();
+
+Map<String, GalleryDemo> studies(GalleryLocalizations localizations) {
+  return <String, GalleryDemo>{
+    'shrine': GalleryDemo(
+      title: 'Shrine',
+      subtitle: localizations.shrineDescription,
+      category: GalleryDemoCategory.study,
+      studyId: 'shrine',
+    ),
+    'rally': GalleryDemo(
+      title: 'Rally',
+      subtitle: localizations.rallyDescription,
+      category: GalleryDemoCategory.study,
+      studyId: 'rally',
+    ),
+    'crane': GalleryDemo(
+      title: 'Crane',
+      subtitle: localizations.craneDescription,
+      category: GalleryDemoCategory.study,
+      studyId: 'crane',
+    ),
+    'fortnightly': GalleryDemo(
+      title: 'Fortnightly',
+      subtitle: localizations.fortnightlyDescription,
+      category: GalleryDemoCategory.study,
+      studyId: 'fortnightly',
+    ),
+    'reply': GalleryDemo(
+      title: 'Reply',
+      subtitle: localizations.replyDescription,
+      category: GalleryDemoCategory.study,
+      studyId: 'reply',
+    ),
+    'starterApp': GalleryDemo(
+      title: localizations.starterAppTitle,
+      subtitle: localizations.starterAppDescription,
+      category: GalleryDemoCategory.study,
+      studyId: 'starter',
+    ),
+  };
+}
+
+List<GalleryDemo> materialDemos(GalleryLocalizations localizations) {
+  LibraryLoader materialDemosLibrary = material_demos.loadLibrary;
+  return [
+    GalleryDemo(
+      title: localizations.demoAppBarTitle,
+      icon: GalleryIcons.appbar,
+      slug: 'app-bar',
+      subtitle: localizations.demoAppBarSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoAppBarTitle,
+          description: localizations.demoAppBarDescription,
+          documentationUrl: '$_docsBaseUrl/material/AppBar-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.AppBarDemo()),
+          code: CodeSegments.appbarDemo,
         ),
-      ),
-    );
-  }
-}
-
-class _CarouselCard extends StatelessWidget {
-  const _CarouselCard({
-    Key key,
-    this.demo,
-    this.asset,
-    this.assetDark,
-    this.assetColor,
-    this.assetDarkColor,
-    this.textColor,
-    this.studyRoute,
-  }) : super(key: key);
-
-  final GalleryDemo demo;
-  final ImageProvider asset;
-  final ImageProvider assetDark;
-  final Color assetColor;
-  final Color assetDarkColor;
-  final Color textColor;
-  final String studyRoute;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final isDark = Theme.of(context).colorScheme.brightness == Brightness.dark;
-    final asset = isDark ? assetDark : this.asset;
-    final assetColor = isDark ? assetDarkColor : this.assetColor;
-    final textColor = isDark ? Colors.white.withOpacity(0.87) : this.textColor;
-
-    return Container(
-      // Makes integration tests possible.
-      key: ValueKey(demo.describe),
-      margin:
-          EdgeInsets.all(isDisplayDesktop(context) ? 0 : _carouselItemMargin),
-      child: Material(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            Navigator.of(context).restorablePushNamed(studyRoute);
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (asset != null)
-                FadeInImagePlaceholder(
-                  image: asset,
-                  child: Ink.image(
-                    image: asset,
-                    fit: BoxFit.cover,
-                  ),
-                  placeholder: Container(
-                    color: assetColor,
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      demo.title,
-                      style: textTheme.caption.apply(color: textColor),
-                      maxLines: 3,
-                      overflow: TextOverflow.visible,
-                    ),
-                    Text(
-                      demo.subtitle,
-                      style: textTheme.overline.apply(color: textColor),
-                      maxLines: 5,
-                      overflow: TextOverflow.visible,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoBannerTitle,
+      icon: GalleryIcons.listsLeaveBehind,
+      slug: 'banner',
+      subtitle: localizations.demoBannerSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoBannerTitle,
+          description: localizations.demoBannerDescription,
+          documentationUrl: '$_docsBaseUrl/material/MaterialBanner-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.BannerDemo()),
+          code: CodeSegments.bannerDemo,
         ),
-      ),
-    );
-  }
-}
-
-double _carouselHeight(double scaleFactor, BuildContext context) => math.max(
-    _carouselHeightMin *
-        GalleryOptions.of(context).textScaleFactor(context) *
-        scaleFactor,
-    _carouselHeightMin);
-
-/// Wrap the studies with this to display a back button and allow the user to
-/// exit them at any time.
-class StudyWrapper extends StatefulWidget {
-  const StudyWrapper({
-    Key key,
-    this.study,
-    this.alignment = AlignmentDirectional.bottomStart,
-  }) : super(key: key);
-
-  final Widget study;
-  final AlignmentDirectional alignment;
-
-  @override
-  _StudyWrapperState createState() => _StudyWrapperState();
-}
-
-class _StudyWrapperState extends State<StudyWrapper> {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return ApplyTextOptions(
-      child: Stack(
-        children: [
-          Semantics(
-            sortKey: const OrdinalSortKey(1),
-            child: RestorationScope(
-              restorationId: 'study_wrapper',
-              child: widget.study,
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoBottomAppBarTitle,
+      icon: GalleryIcons.bottomAppBar,
+      slug: 'bottom-app-bar',
+      subtitle: localizations.demoBottomAppBarSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoBottomAppBarTitle,
+          description: localizations.demoBottomAppBarDescription,
+          documentationUrl: '$_docsBaseUrl/material/BottomAppBar-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.BottomAppBarDemo()),
+          code: CodeSegments.bottomAppBarDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoBottomNavigationTitle,
+      icon: GalleryIcons.bottomNavigation,
+      slug: 'bottom-navigation',
+      subtitle: localizations.demoBottomNavigationSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoBottomNavigationPersistentLabels,
+          description: localizations.demoBottomNavigationDescription,
+          documentationUrl:
+              '$_docsBaseUrl/material/BottomNavigationBar-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.BottomNavigationDemo(
+                    type: BottomNavigationDemoType.withLabels,
+                    restorationId: 'bottom_navigation_labels_demo',
+                  )),
+          code: CodeSegments.bottomNavigationDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoBottomNavigationSelectedLabel,
+          description: localizations.demoBottomNavigationDescription,
+          documentationUrl:
+              '$_docsBaseUrl/material/BottomNavigationBar-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.BottomNavigationDemo(
+                    type: BottomNavigationDemoType.withoutLabels,
+                    restorationId: 'bottom_navigation_without_labels_demo',
+                  )),
+          code: CodeSegments.bottomNavigationDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoBottomSheetTitle,
+      icon: GalleryIcons.bottomSheets,
+      slug: 'bottom-sheet',
+      subtitle: localizations.demoBottomSheetSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoBottomSheetPersistentTitle,
+          description: localizations.demoBottomSheetPersistentDescription,
+          documentationUrl: '$_docsBaseUrl/material/BottomSheet-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.BottomSheetDemo(
+                    type: BottomSheetDemoType.persistent,
+                  )),
+          code: CodeSegments.bottomSheetDemoPersistent,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoBottomSheetModalTitle,
+          description: localizations.demoBottomSheetModalDescription,
+          documentationUrl: '$_docsBaseUrl/material/BottomSheet-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.BottomSheetDemo(
+                    type: BottomSheetDemoType.modal,
+                  )),
+          code: CodeSegments.bottomSheetDemoModal,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoButtonTitle,
+      icon: GalleryIcons.genericButtons,
+      slug: 'button',
+      subtitle: localizations.demoButtonSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoTextButtonTitle,
+          description: localizations.demoTextButtonDescription,
+          documentationUrl: '$_docsBaseUrl/material/TextButton-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ButtonDemo(type: ButtonDemoType.text)),
+          code: CodeSegments.buttonDemoText,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoElevatedButtonTitle,
+          description: localizations.demoElevatedButtonDescription,
+          documentationUrl: '$_docsBaseUrl/material/ElevatedButton-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ButtonDemo(type: ButtonDemoType.elevated)),
+          code: CodeSegments.buttonDemoElevated,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoOutlinedButtonTitle,
+          description: localizations.demoOutlinedButtonDescription,
+          documentationUrl: '$_docsBaseUrl/material/OutlinedButton-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ButtonDemo(type: ButtonDemoType.outlined)),
+          code: CodeSegments.buttonDemoOutlined,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoToggleButtonTitle,
+          description: localizations.demoToggleButtonDescription,
+          documentationUrl: '$_docsBaseUrl/material/ToggleButtons-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ButtonDemo(type: ButtonDemoType.toggle)),
+          code: CodeSegments.buttonDemoToggle,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoFloatingButtonTitle,
+          description: localizations.demoFloatingButtonDescription,
+          documentationUrl:
+              '$_docsBaseUrl/material/FloatingActionButton-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ButtonDemo(type: ButtonDemoType.floating)),
+          code: CodeSegments.buttonDemoFloating,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoCardTitle,
+      icon: GalleryIcons.cards,
+      slug: 'card',
+      subtitle: localizations.demoCardSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCardTitle,
+          description: localizations.demoCardDescription,
+          documentationUrl: '$_docsBaseUrl/material/Card-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.CardsDemo()),
+          code: CodeSegments.cardsDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoChipTitle,
+      icon: GalleryIcons.chips,
+      slug: 'chip',
+      subtitle: localizations.demoChipSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoActionChipTitle,
+          description: localizations.demoActionChipDescription,
+          documentationUrl: '$_docsBaseUrl/material/ActionChip-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ChipDemo(type: ChipDemoType.action)),
+          code: CodeSegments.chipDemoAction,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoChoiceChipTitle,
+          description: localizations.demoChoiceChipDescription,
+          documentationUrl: '$_docsBaseUrl/material/ChoiceChip-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ChipDemo(type: ChipDemoType.choice)),
+          code: CodeSegments.chipDemoChoice,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoFilterChipTitle,
+          description: localizations.demoFilterChipDescription,
+          documentationUrl: '$_docsBaseUrl/material/FilterChip-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ChipDemo(type: ChipDemoType.filter)),
+          code: CodeSegments.chipDemoFilter,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoInputChipTitle,
+          description: localizations.demoInputChipDescription,
+          documentationUrl: '$_docsBaseUrl/material/InputChip-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ChipDemo(type: ChipDemoType.input)),
+          code: CodeSegments.chipDemoInput,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoDataTableTitle,
+      icon: GalleryIcons.dataTable,
+      slug: 'data-table',
+      subtitle: localizations.demoDataTableSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoDataTableTitle,
+          description: localizations.demoDataTableDescription,
+          documentationUrl: '$_docsBaseUrl/material/DataTable-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.DataTableDemo()),
+          code: CodeSegments.dataTableDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoDialogTitle,
+      icon: GalleryIcons.dialogs,
+      slug: 'dialog',
+      subtitle: localizations.demoDialogSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoAlertDialogTitle,
+          description: localizations.demoAlertDialogDescription,
+          documentationUrl: '$_docsBaseUrl/material/AlertDialog-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.DialogDemo(type: DialogDemoType.alert)),
+          code: CodeSegments.dialogDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoAlertTitleDialogTitle,
+          description: localizations.demoAlertDialogDescription,
+          documentationUrl: '$_docsBaseUrl/material/AlertDialog-class.html',
+          buildRoute: (context) => DeferredWidget(materialDemosLibrary,
+              () => material_demos.DialogDemo(type: DialogDemoType.alertTitle)),
+          code: CodeSegments.dialogDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSimpleDialogTitle,
+          description: localizations.demoSimpleDialogDescription,
+          documentationUrl: '$_docsBaseUrl/material/SimpleDialog-class.html',
+          buildRoute: (context) => DeferredWidget(materialDemosLibrary,
+              () => material_demos.DialogDemo(type: DialogDemoType.simple)),
+          code: CodeSegments.dialogDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoFullscreenDialogTitle,
+          description: localizations.demoFullscreenDialogDescription,
+          documentationUrl:
+              '$_docsBaseUrl/widgets/PageRoute/fullscreenDialog.html',
+          buildRoute: (context) => DeferredWidget(materialDemosLibrary,
+              () => material_demos.DialogDemo(type: DialogDemoType.fullscreen)),
+          code: CodeSegments.dialogDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoDividerTitle,
+      icon: GalleryIcons.divider,
+      slug: 'divider',
+      subtitle: localizations.demoDividerSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoDividerTitle,
+          description: localizations.demoDividerDescription,
+          documentationUrl: '$_docsBaseUrl/material/Divider-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              () =>
+                  // ignore: prefer_const_constructors
+                  material_demos.DividerDemo(type: DividerDemoType.horizontal)),
+          code: CodeSegments.dividerDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoVerticalDividerTitle,
+          description: localizations.demoDividerDescription,
+          documentationUrl: '$_docsBaseUrl/material/VerticalDivider-class.html',
+          buildRoute: (_) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.DividerDemo(type: DividerDemoType.vertical)),
+          code: CodeSegments.verticalDividerDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoGridListsTitle,
+      icon: GalleryIcons.gridOn,
+      slug: 'grid-lists',
+      subtitle: localizations.demoGridListsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoGridListsImageOnlyTitle,
+          description: localizations.demoGridListsDescription,
+          documentationUrl: '$_docsBaseUrl/widgets/GridView-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.GridListDemo(
+                  type: GridListDemoType.imageOnly)),
+          code: CodeSegments.gridListsDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoGridListsHeaderTitle,
+          description: localizations.demoGridListsDescription,
+          documentationUrl: '$_docsBaseUrl/widgets/GridView-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.GridListDemo(type: GridListDemoType.header)),
+          code: CodeSegments.gridListsDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoGridListsFooterTitle,
+          description: localizations.demoGridListsDescription,
+          documentationUrl: '$_docsBaseUrl/widgets/GridView-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.GridListDemo(type: GridListDemoType.footer)),
+          code: CodeSegments.gridListsDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoListsTitle,
+      icon: GalleryIcons.listAlt,
+      slug: 'lists',
+      subtitle: localizations.demoListsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoOneLineListsTitle,
+          description: localizations.demoListsDescription,
+          documentationUrl: '$_docsBaseUrl/material/ListTile-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ListDemo(type: ListDemoType.oneLine)),
+          code: CodeSegments.listDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoTwoLineListsTitle,
+          description: localizations.demoListsDescription,
+          documentationUrl: '$_docsBaseUrl/material/ListTile-class.html',
+          buildRoute: (context) => DeferredWidget(
+              materialDemosLibrary,
+              // ignore: prefer_const_constructors
+              () => material_demos.ListDemo(type: ListDemoType.twoLine)),
+          code: CodeSegments.listDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoMenuTitle,
+      icon: GalleryIcons.moreVert,
+      slug: 'menu',
+      subtitle: localizations.demoMenuSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoContextMenuTitle,
+          description: localizations.demoMenuDescription,
+          documentationUrl: '$_docsBaseUrl/material/PopupMenuItem-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.MenuDemo(type: MenuDemoType.contextMenu),
+          ),
+          code: CodeSegments.menuDemoContext,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSectionedMenuTitle,
+          description: localizations.demoMenuDescription,
+          documentationUrl: '$_docsBaseUrl/material/PopupMenuItem-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.MenuDemo(type: MenuDemoType.sectionedMenu),
+          ),
+          code: CodeSegments.menuDemoSectioned,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoChecklistMenuTitle,
+          description: localizations.demoMenuDescription,
+          documentationUrl:
+              '$_docsBaseUrl/material/CheckedPopupMenuItem-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.MenuDemo(type: MenuDemoType.checklistMenu),
+          ),
+          code: CodeSegments.menuDemoChecklist,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSimpleMenuTitle,
+          description: localizations.demoMenuDescription,
+          documentationUrl: '$_docsBaseUrl/material/PopupMenuItem-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.MenuDemo(type: MenuDemoType.simpleMenu),
+          ),
+          code: CodeSegments.menuDemoSimple,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoNavigationDrawerTitle,
+      icon: GalleryIcons.menu,
+      slug: 'nav_drawer',
+      subtitle: localizations.demoNavigationDrawerSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoNavigationDrawerTitle,
+          description: localizations.demoNavigationDrawerDescription,
+          documentationUrl: '$_docsBaseUrl/material/Drawer-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.NavDrawerDemo(),
+          ),
+          code: CodeSegments.navDrawerDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoNavigationRailTitle,
+      icon: GalleryIcons.navigationRail,
+      slug: 'nav_rail',
+      subtitle: localizations.demoNavigationRailSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoNavigationRailTitle,
+          description: localizations.demoNavigationRailDescription,
+          documentationUrl: '$_docsBaseUrl/material/NavigationRail-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.NavRailDemo(),
+          ),
+          code: CodeSegments.navRailDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoPickersTitle,
+      icon: GalleryIcons.event,
+      slug: 'pickers',
+      subtitle: localizations.demoPickersSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoDatePickerTitle,
+          description: localizations.demoDatePickerDescription,
+          documentationUrl: '$_docsBaseUrl/material/showDatePicker.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.PickerDemo(type: PickerDemoType.date),
+          ),
+          code: CodeSegments.pickerDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoTimePickerTitle,
+          description: localizations.demoTimePickerDescription,
+          documentationUrl: '$_docsBaseUrl/material/showTimePicker.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.PickerDemo(type: PickerDemoType.time),
+          ),
+          code: CodeSegments.pickerDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoDateRangePickerTitle,
+          description: localizations.demoDateRangePickerDescription,
+          documentationUrl: '$_docsBaseUrl/material/showDateRangePicker.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.PickerDemo(type: PickerDemoType.range),
+          ),
+          code: CodeSegments.pickerDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoProgressIndicatorTitle,
+      icon: GalleryIcons.progressActivity,
+      slug: 'progress-indicator',
+      subtitle: localizations.demoProgressIndicatorSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCircularProgressIndicatorTitle,
+          description: localizations.demoCircularProgressIndicatorDescription,
+          documentationUrl:
+              '$_docsBaseUrl/material/CircularProgressIndicator-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.ProgressIndicatorDemo(
+              type: ProgressIndicatorDemoType.circular,
             ),
           ),
-          SafeArea(
-            child: Align(
-              alignment: widget.alignment,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Semantics(
-                  sortKey: const OrdinalSortKey(0),
-                  label: GalleryLocalizations.of(context).backToGallery,
-                  button: true,
-                  enabled: true,
-                  excludeSemantics: true,
-                  child: FloatingActionButton.extended(
-                    heroTag: _BackButtonHeroTag(),
-                    key: const ValueKey('Back'),
-                    onPressed: () {
-                      Navigator.of(context)
-                          .popUntil((route) => route.settings.name == '/');
-                    },
-                    icon: IconTheme(
-                      data: IconThemeData(color: colorScheme.onPrimary),
-                      child: const BackButtonIcon(),
-                    ),
-                    label: Text(
-                      MaterialLocalizations.of(context).backButtonTooltip,
-                      style:
-                          textTheme.button.apply(color: colorScheme.onPrimary),
-                    ),
-                  ),
-                ),
-              ),
+          code: CodeSegments.progressIndicatorsDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoLinearProgressIndicatorTitle,
+          description: localizations.demoLinearProgressIndicatorDescription,
+          documentationUrl:
+              '$_docsBaseUrl/material/LinearProgressIndicator-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.ProgressIndicatorDemo(
+              type: ProgressIndicatorDemoType.linear,
             ),
           ),
-        ],
-      ),
-    );
-  }
+          code: CodeSegments.progressIndicatorsDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoSelectionControlsTitle,
+      icon: GalleryIcons.checkBox,
+      slug: 'selection-controls',
+      subtitle: localizations.demoSelectionControlsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoSelectionControlsCheckboxTitle,
+          description: localizations.demoSelectionControlsCheckboxDescription,
+          documentationUrl: '$_docsBaseUrl/material/Checkbox-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.SelectionControlsDemo(
+              type: SelectionControlsDemoType.checkbox,
+            ),
+          ),
+          code: CodeSegments.selectionControlsDemoCheckbox,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSelectionControlsRadioTitle,
+          description: localizations.demoSelectionControlsRadioDescription,
+          documentationUrl: '$_docsBaseUrl/material/Radio-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.SelectionControlsDemo(
+              type: SelectionControlsDemoType.radio,
+            ),
+          ),
+          code: CodeSegments.selectionControlsDemoRadio,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSelectionControlsSwitchTitle,
+          description: localizations.demoSelectionControlsSwitchDescription,
+          documentationUrl: '$_docsBaseUrl/material/Switch-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.SelectionControlsDemo(
+              type: SelectionControlsDemoType.switches,
+            ),
+          ),
+          code: CodeSegments.selectionControlsDemoSwitches,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoSlidersTitle,
+      icon: GalleryIcons.sliders,
+      slug: 'sliders',
+      subtitle: localizations.demoSlidersSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoSlidersTitle,
+          description: localizations.demoSlidersDescription,
+          documentationUrl: '$_docsBaseUrl/material/Slider-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.SlidersDemo(type: SlidersDemoType.sliders),
+          ),
+          code: CodeSegments.slidersDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoRangeSlidersTitle,
+          description: localizations.demoRangeSlidersDescription,
+          documentationUrl: '$_docsBaseUrl/material/RangeSlider-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            () =>
+                // ignore: prefer_const_constructors
+                material_demos.SlidersDemo(type: SlidersDemoType.rangeSliders),
+          ),
+          code: CodeSegments.rangeSlidersDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoCustomSlidersTitle,
+          description: localizations.demoCustomSlidersDescription,
+          documentationUrl: '$_docsBaseUrl/material/SliderTheme-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            () =>
+                // ignore: prefer_const_constructors
+                material_demos.SlidersDemo(type: SlidersDemoType.customSliders),
+          ),
+          code: CodeSegments.customSlidersDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoSnackbarsTitle,
+      icon: GalleryIcons.snackbar,
+      slug: 'snackbars',
+      subtitle: localizations.demoSnackbarsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoSnackbarsTitle,
+          description: localizations.demoSnackbarsDescription,
+          documentationUrl: '$_docsBaseUrl/material/SnackBar-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.SnackbarsDemo(),
+          ),
+          code: CodeSegments.snackbarsDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoTabsTitle,
+      icon: GalleryIcons.tabs,
+      slug: 'tabs',
+      subtitle: localizations.demoTabsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoTabsScrollingTitle,
+          description: localizations.demoTabsDescription,
+          documentationUrl: '$_docsBaseUrl/material/TabBar-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.TabsDemo(type: TabsDemoType.scrollable),
+          ),
+          code: CodeSegments.tabsScrollableDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoTabsNonScrollingTitle,
+          description: localizations.demoTabsDescription,
+          documentationUrl: '$_docsBaseUrl/material/TabBar-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.TabsDemo(type: TabsDemoType.nonScrollable),
+          ),
+          code: CodeSegments.tabsNonScrollableDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoTextFieldTitle,
+      icon: GalleryIcons.textFieldsAlt,
+      slug: 'text-field',
+      subtitle: localizations.demoTextFieldSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoTextFieldTitle,
+          description: localizations.demoTextFieldDescription,
+          documentationUrl: '$_docsBaseUrl/material/TextField-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.TextFieldDemo(),
+          ),
+          code: CodeSegments.textFieldDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+    GalleryDemo(
+      title: localizations.demoTooltipTitle,
+      icon: GalleryIcons.tooltip,
+      slug: 'tooltip',
+      subtitle: localizations.demoTooltipSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoTooltipTitle,
+          description: localizations.demoTooltipDescription,
+          documentationUrl: '$_docsBaseUrl/material/Tooltip-class.html',
+          buildRoute: (context) => DeferredWidget(
+            materialDemosLibrary,
+            // ignore: prefer_const_constructors
+            () => material_demos.TooltipDemo(),
+          ),
+          code: CodeSegments.tooltipDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.material,
+    ),
+  ];
 }
 
-class _BackButtonHeroTag {}
+List<GalleryDemo> cupertinoDemos(GalleryLocalizations localizations) {
+  LibraryLoader cupertinoLoader = cupertino_demos.loadLibrary;
+  return [
+    GalleryDemo(
+      title: localizations.demoCupertinoActivityIndicatorTitle,
+      icon: GalleryIcons.cupertinoProgress,
+      slug: 'cupertino-activity-indicator',
+      subtitle: localizations.demoCupertinoActivityIndicatorSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoActivityIndicatorTitle,
+          description: localizations.demoCupertinoActivityIndicatorDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoActivityIndicator-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoProgressIndicatorDemo()),
+          code: CodeSegments.cupertinoActivityIndicatorDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoAlertsTitle,
+      icon: GalleryIcons.dialogs,
+      slug: 'cupertino-alerts',
+      subtitle: localizations.demoCupertinoAlertsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoAlertTitle,
+          description: localizations.demoCupertinoAlertDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoAlertDialog-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoAlertDemo(
+                  type: AlertDemoType.alert)),
+          code: CodeSegments.cupertinoAlertDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoAlertWithTitleTitle,
+          description: localizations.demoCupertinoAlertDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoAlertDialog-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoAlertDemo(
+                  type: AlertDemoType.alertTitle)),
+          code: CodeSegments.cupertinoAlertDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoAlertButtonsTitle,
+          description: localizations.demoCupertinoAlertDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoAlertDialog-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoAlertDemo(
+                  type: AlertDemoType.alertButtons)),
+          code: CodeSegments.cupertinoAlertDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoAlertButtonsOnlyTitle,
+          description: localizations.demoCupertinoAlertDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoAlertDialog-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoAlertDemo(
+                  type: AlertDemoType.alertButtonsOnly)),
+          code: CodeSegments.cupertinoAlertDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoActionSheetTitle,
+          description: localizations.demoCupertinoActionSheetDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoActionSheet-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoAlertDemo(
+                  type: AlertDemoType.actionSheet)),
+          code: CodeSegments.cupertinoAlertDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoButtonsTitle,
+      icon: GalleryIcons.genericButtons,
+      slug: 'cupertino-buttons',
+      subtitle: localizations.demoCupertinoButtonsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoButtonsTitle,
+          description: localizations.demoCupertinoButtonsDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoButton-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoButtonDemo()),
+          code: CodeSegments.cupertinoButtonDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoContextMenuTitle,
+      icon: GalleryIcons.moreVert,
+      slug: 'cupertino-context-menu',
+      subtitle: localizations.demoCupertinoContextMenuSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoContextMenuTitle,
+          description: localizations.demoCupertinoContextMenuDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoContextMenu-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoContextMenuDemo()),
+          code: CodeSegments.cupertinoContextMenuDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoNavigationBarTitle,
+      icon: GalleryIcons.bottomSheetPersistent,
+      slug: 'cupertino-navigation-bar',
+      subtitle: localizations.demoCupertinoNavigationBarSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoNavigationBarTitle,
+          description: localizations.demoCupertinoNavigationBarDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoNavigationBar-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoNavigationBarDemo()),
+          code: CodeSegments.cupertinoNavigationBarDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoPickerTitle,
+      icon: GalleryIcons.event,
+      slug: 'cupertino-picker',
+      subtitle: localizations.demoCupertinoPickerSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoPickerTitle,
+          description: localizations.demoCupertinoPickerDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoDatePicker-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoPickerDemo()),
+          code: CodeSegments.cupertinoPickersDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoPullToRefreshTitle,
+      icon: GalleryIcons.cupertinoPullToRefresh,
+      slug: 'cupertino-pull-to-refresh',
+      subtitle: localizations.demoCupertinoPullToRefreshSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoPullToRefreshTitle,
+          description: localizations.demoCupertinoPullToRefreshDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoSliverRefreshControl-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoRefreshControlDemo()),
+          code: CodeSegments.cupertinoRefreshDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoSegmentedControlTitle,
+      icon: GalleryIcons.tabs,
+      slug: 'cupertino-segmented-control',
+      subtitle: localizations.demoCupertinoSegmentedControlSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoSegmentedControlTitle,
+          description: localizations.demoCupertinoSegmentedControlDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoSegmentedControl-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoSegmentedControlDemo()),
+          code: CodeSegments.cupertinoSegmentedControlDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoSliderTitle,
+      icon: GalleryIcons.sliders,
+      slug: 'cupertino-slider',
+      subtitle: localizations.demoCupertinoSliderSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoSliderTitle,
+          description: localizations.demoCupertinoSliderDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoSlider-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoSliderDemo()),
+          code: CodeSegments.cupertinoSliderDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoSelectionControlsSwitchTitle,
+      icon: GalleryIcons.cupertinoSwitch,
+      slug: 'cupertino-switch',
+      subtitle: localizations.demoCupertinoSwitchSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoSelectionControlsSwitchTitle,
+          description: localizations.demoCupertinoSwitchDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoSwitch-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoSwitchDemo()),
+          code: CodeSegments.cupertinoSwitchDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoTabBarTitle,
+      icon: GalleryIcons.bottomNavigation,
+      slug: 'cupertino-tab-bar',
+      subtitle: localizations.demoCupertinoTabBarSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoTabBarTitle,
+          description: localizations.demoCupertinoTabBarDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoTabBar-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoTabBarDemo()),
+          code: CodeSegments.cupertinoNavigationDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+    GalleryDemo(
+      title: localizations.demoCupertinoTextFieldTitle,
+      icon: GalleryIcons.textFieldsAlt,
+      slug: 'cupertino-text-field',
+      subtitle: localizations.demoCupertinoTextFieldSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoCupertinoTextFieldTitle,
+          description: localizations.demoCupertinoTextFieldDescription,
+          documentationUrl:
+              '$_docsBaseUrl/cupertino/CupertinoTextField-class.html',
+          buildRoute: (_) => DeferredWidget(
+              cupertinoLoader,
+              // ignore: prefer_const_constructors
+              () => cupertino_demos.CupertinoTextFieldDemo()),
+          code: CodeSegments.cupertinoTextFieldDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.cupertino,
+    ),
+  ];
+}
+
+List<GalleryDemo> otherDemos(GalleryLocalizations localizations) {
+  return [
+    GalleryDemo(
+      title: localizations.demoMotionTitle,
+      icon: GalleryIcons.animation,
+      slug: 'motion',
+      subtitle: localizations.demoMotionSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoContainerTransformTitle,
+          description: localizations.demoContainerTransformDescription,
+          documentationUrl: '$_docsAnimationsUrl/OpenContainer-class.html',
+          buildRoute: (_) => DeferredWidget(
+              motion_demo_container.loadLibrary,
+              // ignore: prefer_const_constructors
+              () => motion_demo_container.OpenContainerTransformDemo()),
+          code: CodeSegments.openContainerTransformDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSharedXAxisTitle,
+          description: localizations.demoSharedAxisDescription,
+          documentationUrl:
+              '$_docsAnimationsUrl/SharedAxisTransition-class.html',
+          buildRoute: (_) => const SharedXAxisTransitionDemo(),
+          code: CodeSegments.sharedXAxisTransitionDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSharedYAxisTitle,
+          description: localizations.demoSharedAxisDescription,
+          documentationUrl:
+              '$_docsAnimationsUrl/SharedAxisTransition-class.html',
+          buildRoute: (_) => const SharedYAxisTransitionDemo(),
+          code: CodeSegments.sharedYAxisTransitionDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoSharedZAxisTitle,
+          description: localizations.demoSharedAxisDescription,
+          documentationUrl:
+              '$_docsAnimationsUrl/SharedAxisTransition-class.html',
+          buildRoute: (_) => const SharedZAxisTransitionDemo(),
+          code: CodeSegments.sharedZAxisTransitionDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoFadeThroughTitle,
+          description: localizations.demoFadeThroughDescription,
+          documentationUrl:
+              '$_docsAnimationsUrl/FadeThroughTransition-class.html',
+          buildRoute: (_) => const FadeThroughTransitionDemo(),
+          code: CodeSegments.fadeThroughTransitionDemo,
+        ),
+        GalleryDemoConfiguration(
+          title: localizations.demoFadeScaleTitle,
+          description: localizations.demoFadeScaleDescription,
+          documentationUrl:
+              '$_docsAnimationsUrl/FadeScaleTransition-class.html',
+          buildRoute: (_) => const FadeScaleTransitionDemo(),
+          code: CodeSegments.fadeScaleTransitionDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.other,
+    ),
+    GalleryDemo(
+      title: localizations.demoColorsTitle,
+      icon: GalleryIcons.colors,
+      slug: 'colors',
+      subtitle: localizations.demoColorsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoColorsTitle,
+          description: localizations.demoColorsDescription,
+          documentationUrl: '$_docsBaseUrl/material/MaterialColor-class.html',
+          buildRoute: (_) => DeferredWidget(
+              colors_demo.loadLibrary,
+              // ignore: prefer_const_constructors
+              () => colors_demo.ColorsDemo()),
+          code: CodeSegments.colorsDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.other,
+    ),
+    GalleryDemo(
+      title: localizations.demoTypographyTitle,
+      icon: GalleryIcons.customTypography,
+      slug: 'typography',
+      subtitle: localizations.demoTypographySubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demoTypographyTitle,
+          description: localizations.demoTypographyDescription,
+          documentationUrl: '$_docsBaseUrl/material/TextTheme-class.html',
+          buildRoute: (_) => DeferredWidget(
+              typography.loadLibrary,
+              // ignore: prefer_const_constructors
+              () => typography.TypographyDemo()),
+          code: CodeSegments.typographyDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.other,
+    ),
+    GalleryDemo(
+      title: localizations.demo2dTransformationsTitle,
+      icon: GalleryIcons.gridOn,
+      slug: '2d-transformations',
+      subtitle: localizations.demo2dTransformationsSubtitle,
+      configurations: [
+        GalleryDemoConfiguration(
+          title: localizations.demo2dTransformationsTitle,
+          description: localizations.demo2dTransformationsDescription,
+          documentationUrl: '$_docsBaseUrl/widgets/GestureDetector-class.html',
+          buildRoute: (_) => DeferredWidget(
+              transformations_demo.loadLibrary,
+              // ignore: prefer_const_constructors
+              () => transformations_demo.TransformationsDemo()),
+          code: CodeSegments.transformationsDemo,
+        ),
+      ],
+      category: GalleryDemoCategory.other,
+    ),
+  ];
+}
+
+Map<String, GalleryDemo> slugToDemo(BuildContext context) {
+  final localizations = GalleryLocalizations.of(context);
+  return LinkedHashMap<String, GalleryDemo>.fromIterable(
+    allGalleryDemos(localizations),
+    key: (dynamic demo) => demo.slug as String,
+  );
+}
+
+/// Awaits all deferred libraries for tests.
+Future<void> pumpDeferredLibraries() {
+  final futures = <Future<void>>[
+    DeferredWidget.preload(cupertino_demos.loadLibrary),
+    DeferredWidget.preload(material_demos.loadLibrary),
+    DeferredWidget.preload(motion_demo_container.loadLibrary),
+    DeferredWidget.preload(colors_demo.loadLibrary),
+    DeferredWidget.preload(transformations_demo.loadLibrary),
+    DeferredWidget.preload(typography.loadLibrary),
+  ];
+  return Future.wait(futures);
+}

@@ -74,10 +74,7 @@ class _AdaptiveNavState extends State<AdaptiveNav> {
         textLabel: localizations.replySpamLabel,
         icon: '$_iconAssetLocation/twotone_error.png',
       ),
-      _Destination(
-        type: MailboxPageType.drafts,
-        textLabel: localizations.replyDraftsLabel,
-        icon: '$_iconAssetLocation/twotone_drafts.png',
+
       ),
     ];
 
